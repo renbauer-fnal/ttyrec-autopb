@@ -50,8 +50,8 @@ def parse_response(response):
     parsed_response = response
     if response['type'] == 'diff':
         print('parsing diff:')
-        print(response)
         diff_lines = {}
+        parsed_response.update({'full_diff': response['lines']})
         parsed_response.update({'header': [], 'diff': diff_lines})
         side=None
         left_re = re.compile(r"\*\*\* (\d+)(?:,\d+)? \*\*\*\*")
