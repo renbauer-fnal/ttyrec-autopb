@@ -1,0 +1,33 @@
+#!/bin/bash
+
+ttyrec_proc=$(ps -ejH | grep -n3 $$ | grep -m1 ttyrec | awk '{print $2}')
+kill -23 $ttyrec_proc
+    
+for file in $@; do
+    touch $file
+    mkdir -p /tmp/$(dirname $file)
+    cp $file /tmp/$(dirname $file)
+done
+
+vim $@
+
+for file in $@; do
+    kill -12 $ttyrec_proc
+    echo "!#FILECHANGED: $file"
+    diff -c /tmp/$file $file
+    kill -23 $ttyrec_proc
+    rm /tmp/$file
+    dir=$(dirname $file)
+    while [ "$dir" != "." ]; do
+        rmdir /tmp/$dir >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+           dir=$(dirname $dir)
+        else
+           break
+        fi
+    done
+done
+
+# clear
+
+kill -12 $ttyrec_proc

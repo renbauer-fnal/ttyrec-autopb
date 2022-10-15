@@ -1,0 +1,11 @@
+#!/bin/bash
+
+alias vim=~/.tty/vim
+
+shell_char="$"
+if [ "$(id -u)" -eq 0 ]; then
+  shell_char="#"
+fi
+PS1="[\D{%y%m%d-%H:%M:%S}][\e[0;31m●\e[m] [\u@\h \W]${shell_char} "
+
+source ~/.bashrc
