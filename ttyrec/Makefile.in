@@ -1,0 +1,59 @@
+CC ?= %CC%
+CFLAGS += -O2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -I/usr/local/include %CFLAGS% $(RPM_OPT_FLAGS)
+LDFLAGS += -L/usr/local/lib
+LDLIBS += %LDLIBS% %PTHREAD%
+
+BINARIES = ttyrec ttyplay ttytime
+
+include config.mk
+PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
+
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),FreeBSD)
+    MANDIR ?= $(PREFIX)/man
+else
+    MANDIR ?= $(PREFIX)/share/man
+endif
+
+.PHONY: all deb rpm clean distclean style dist install test
+
+all: $(BINARIES)
+
+deb:
+	dpkg-buildpackage -b -rfakeroot -us -uc
+
+rpm: clean
+	o=$$PWD && t=$$(mktemp -d) && cd $$t && mkdir ovh-ttyrec && rsync -a --exclude=.git $$o/ ovh-ttyrec/ && zip -9r ~/rpmbuild/SOURCES/master.zip ovh-ttyrec
+	rpmbuild -bb ovh-ttyrec.spec
+	ls -lh ~/rpmbuild/RPMS/*/ovh-ttyrec*.rpm
+
+ttyrec: ttyrec.o io.o compress.o %COMPRESS_ZSTD%
+	$(CC) $(CFLAGS) -o $@ ttyrec.o io.o compress.o %COMPRESS_ZSTD% $(LDFLAGS) $(LDLIBS)
+
+ttyplay: ttyplay.o io.o compress.o %COMPRESS_ZSTD%
+	$(CC) $(CFLAGS) -o $@ ttyplay.o io.o compress.o %COMPRESS_ZSTD% $(LDFLAGS) $(LDLIBS)
+
+ttytime: ttytime.o io.o compress.o %COMPRESS_ZSTD%
+	$(CC) $(CFLAGS) -o $@ ttytime.o io.o compress.o %COMPRESS_ZSTD% $(LDFLAGS) $(LDLIBS)
+
+clean:
+	rm -f *.o $(BINARIES) ttyrecord *~
+
+distclean: clean
+	rm -f Makefile configure.h
+
+style:
+	uncrustify -c uncrustify.cfg -l C --no-backup *.h *.c
+
+dist:
+	tar cvzf ttyrec.tar.gz *.c *.h docs/ debian/ configure Makefile.in uncrustify.cfg
+
+install:
+	install -d $(DESTDIR)$(BINDIR)
+	install $(BINARIES) $(DESTDIR)$(BINDIR)/
+	install -d $(DESTDIR)$(MANDIR)/man1
+	install -m 0644 docs/* $(DESTDIR)$(MANDIR)/man1/
+
+test: all
+	./ttyrec -V

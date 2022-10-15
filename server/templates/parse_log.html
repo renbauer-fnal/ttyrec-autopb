@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Log Lines {% endblock %}</h1>
+    <script>
+        function toggle_include(index) {
+            if ($( "#include_" + index).prop('checked')) {
+                $( "#logline_" + index ).animate({'max-height': $( "#logline_" + index ).prop('scrollHeight')});
+                $( "#logline_" + index ).addClass("selected");
+                $( "#logline_" + index ).removeClass("unselected");
+                $( "#logline_label_" + index ).addClass("selected");
+                $( "#logline_label_" + index ).removeClass("unselected");
+            } else {
+                $( "#logline_" + index ).animate({'max-height': '50px'});
+                $( "#logline_" + index ).addClass("unselected");
+                $( "#logline_" + index ).removeClass("selected");
+                $( "#logline_label_" + index ).addClass("unselected");
+                $( "#logline_label_" + index ).removeClass("selected");
+            }
+        }
+
+        function delay(time) {
+            return new Promise(resolve => setTimeout(resolve, time));
+        }
+
+        previous_onload = window.onload;
+        window.onload = function() {
+            console.log('onload');
+            if (previous_onload) {
+                previous_onload();
+            }
+            delay(1).then(function() {
+                $( "[id^=logline_label]" ).each(function(index) {
+                    toggle_include(index);
+                })
+            });
+        };
+    </script>
+    <style>
+       label {
+           cursor:pointer;
+       }
+       div.logline {
+           overflow:hidden;
+           display:inline-block;
+           width:70%;
+       }
+       label.unselected:hover {
+           color:black;
+       }
+       label.selected:hover {
+           color:grey;
+       }
+       label.unselected {
+       }
+       span.logfile_index_1 {
+           padding-left:50px;
+       }
+       span.logfile_index_2 {
+           padding-left:100px;
+       }
+       span.logfile_index_3 {
+           padding-left:150px;
+       }
+       form {
+           width:90%;
+       }
+       p.diff {
+           background-color:white;
+       }
+    </style>
+    <form method="post" action="publish">
+    {% for logline in loglines %}
+      <span style='display:inline-block;width:100%'>
+        <span class='logfile_index_{{logline['logfile_index']}}' style="width:100%">
+          <div id='logline_{{loop.index}}' class='logline unselected' style="max-height:50px">
+            <div class='message' style="padding-right:50px">
+            <label id='logline_label{{loop.index}}' class='logline_label unselected' for="include_{{loop.index}}">
+                <div>
+                  <input type=hidden id="command_{{loop.index}}" name="command_{{loop.index}}" value="{{ logline['command'] }}">
+                  <input type=hidden id="response_{{loop.index}}" name="response_{{loop.index}}" value="{{ logline['response'] }}">
+                  <input type=hidden id="hostname_{{loop.index}}" name="hostname_{{loop.index}}" value="{{ logline['hostname'] }}">
+                  {% for commandline in logline['command'] %}
+                    <b>({{commandline['time']}}) {{ commandline['prompt'] }}{{ commandline['arrow'] }}</b>{{ commandline['input'] }}<br/>
+                  {% endfor %}
+                  {% set response = logline['response'] %}
+                  {% if response['type'] == 'basic' %}
+                    <p>
+                    {% for responseline in response['lines'] %}
+                      {{ responseline }}<br/>
+                    {% endfor %}
+                    </p>
+                  {% elif response['type'] == 'diff' %}
+                    <p class="diff">
+                    {% for headerline in response['header'] %}
+                      {{ headerline }}<br/>
+                    {% endfor %}
+                      <table>
+                      {% for diffline_no, diffline in response['diff'].items() %}
+                        <tr>
+                          <td>{{ diffline_no }}</td><td>{{ diffline['left'] }}</td><td>{{ diffline['right'] }}</td>
+                        </tr>
+                      {% endfor %}
+                      </table>
+                    </p>
+                  {% endif %}
+                </div>
+              </label>
+              <div class='message' id='details_{{loop.index}}' style='width:100%;float:none'> <!-- ;display:none'> -->
+                <span style='float:right;padding:8px'>
+                  <label style='padding:8px' for="mutating_{{loop.index}}">
+                    Diagnostic
+                    <label class="switch">
+                      <input type="checkbox" id="mutating_{{loop.index}}" name="mutating_{{loop.index}}" class="mutating">
+                      <span class="slider round"></span>
+                    </label>
+                    Mutating <br/>
+                  </label>
+                </span>
+                <input type="textbox" name="comment_{{loop.index}}" style="width:100%">
+              </div>
+            </div>
+          </div>
+        </span> 
+        <span style="vertical-align:top">
+          <div class='message' style='display:inline-block'>
+            <span> <!-- style="float:right;display:inline-block"> -->
+              <label class="switch">
+                  <input type="checkbox" id="include_{{loop.index}}" name="include_{{loop.index}}" class="include" onClick="toggle_include({{loop.index}});">
+                <span class="slider round"></span>
+              </label>
+            </span>
+          </div>
+        </span>
+      </span>
+    {% endfor %}
+    <button class="ui-button ui-widget ui-corner-all" style='margin:30px;margin-right:12%;float:right' type=submit>Publish</button>
+    </form>
+{% endblock %}

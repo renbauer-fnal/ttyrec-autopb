@@ -1,0 +1,11 @@
+Script started on Wed 29 Jun 2022 03:03:21 PM UTC
+WARNING: based on your node, fermicloud587.fnal.gov, ENSTORE_CONFIG_HOST has been set to conf-stken.fnal.gov
+WARNING: If this is not correct; either reset ENSTORE_CONFIG_HOST by hand, set ENSTORE_USER_DEFINED_CONFIG_HOST by hand before running setup or use a qualifier in your setup command!
+WARNING: based on your node, fermicloud587.fnal.gov, ENSTORE_CONFIG_FILE has been set to stk.conf
+WARNING: If this is not correct; either reset ENSTORE_CONFIG_FILE by hand, set ENSTORE_USER_DEFINED_CONFIG_FILE by hand before running setup or use a qualifier in your setup command!
+WARNING: based on your node, fermicloud587.fnal.gov, ENSTORE_MAIL has been set to enstore-auto@fnal.gov
+WARNING: If this is not correct, either reset ENSTORE_MAIL by hand, set ENSTORE_USER_DEFINED_MAIL by had before running setup or use a qualifier in your setup command!
+]0;ren@fermicloud587:~/autopb-flask/script-test[?1034h[ren@fermicloud587 script-test]$ scrip[K[K[K[K[K#[K$(vim text
+> )
+Vim: Warning: Output is not to a terminal
+

@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Open a logfile for parsing {% endblock %}</h1>
+    <form method="post">
+        <label for="logfile">logfile path</label>
+        <br>
+        <input type="text" style="width:80%" name="logfile"
+               placeholder="Log file absolute path"
+               value="{{ request.form['logfile'] }}"></input>
+        <br>
+        <button type="submit">Submit</button>
+    </form>
+{% endblock %}
+

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+until [ "$?" -ne 0 ]; do
+  kill -9 $(ps -Af | grep -m1 script | awk '{print $2}')
+done
+echo 'script is still running yay!'
+files=$(ls $@)
+echo $files

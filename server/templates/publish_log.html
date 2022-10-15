@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Wiki-Formatted Procedure {% endblock %}</h1>
+    <textarea type=text style='width:80%;height:80%;' readonly>{{ formatted_proclines }}</textarea>
+{% endblock %}

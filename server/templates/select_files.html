@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Please select the log files you'd like to open: {% endblock %}</h1>
+    <form method="post" action="parsemultiple">
+    {% for file in ttyrec_files %}
+        <input type="hidden" id="logdir" name="logdir" value="{{logdir}}">
+        <label for="{{file}}">
+            <div class='message'>
+                <p> {{ file }}
+                </p>
+                <div align="right">
+                    <span>
+                        <input type="checkbox" id="{{file}}" name="{{file}}">
+                    </span>
+                </div>
+            </div>
+        </label>
+    {% endfor %}
+    <div align="right">
+        <button type=submit>Parse</button>
+    </div>
+    </form>
+{% endblock %}
