@@ -230,12 +230,13 @@ def open_logdir():
     if request.method == 'POST':
         logdir = request.form['logdir']
 
-        ttyrec_files = [f for f in os.listdir(logdir) if f.endswith('.ttyrec')]
-
-        if not logdir:
-            flash('Please provide a logs directory.')
-        else:
+        try:
+            ttyrec_files = [f for f in os.listdir(logdir) if f.endswith('.ttyrec')]
+            if not logdir:
+                logdir = '/tmp/var/ttyrec/'
             return render_template('select_files.html', logdir=logdir, ttyrec_files=ttyrec_files)
+        except OSError as e:
+            flash("%s - Please provide a valid logs directory" % e)
 
     return render_template('open_form.html')
 
