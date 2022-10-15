@@ -15,7 +15,8 @@ for file in $@; do
     kill -12 $ttyrec_proc
     echo "!#FILECHANGED: $file"
     diff -c /tmp/$file $file
-    kill -23 $ttyrec_proc
+    # sleep .1
+    # kill -23 $ttyrec_proc
     rm /tmp/$file
     dir=$(dirname $file)
     while [ "$dir" != "." ]; do
@@ -30,4 +31,4 @@ done
 
 # clear
 
-kill -12 $ttyrec_proc
+# kill -12 $ttyrec_proc
