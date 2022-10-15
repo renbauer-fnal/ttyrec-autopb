@@ -594,10 +594,12 @@ int main(int argc, char **argv)
         if (argv[0] == NULL)
         {
             command   = shell;
-            params    = malloc(sizeof(char *) * 3);
+            params    = malloc(sizeof(char *) * 5);
             params[0] = strrchr(shell, '/') + 1;
-            params[1] = "-i";
-            params[2] = NULL;
+            params[1] = "--rcfile";
+            params[2] = "~/.ttyrecrc";
+            params[3] = "-i";
+            params[4] = NULL;
         }
         else
         {
@@ -660,7 +662,6 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
     printdbg("will use %s as dname\r\n", dname);
-
     if ((fscript = fopen(fname, opt_append ? "a" : "w")) == NULL)
     {
         perror(fname);
@@ -908,7 +909,7 @@ void doinput(void)
         while ((cc = read(0, ibuf, readsz)) > 0)
         {
             printdbg2("[in:%d]", cc);
-            if (!locked_since)
+            if (1) //!locked_since)
             {
                 if (write(master, ibuf, cc) == -1)
                 {
@@ -983,6 +984,10 @@ void set_ttyrec_file_name(char **nameptr)
 {
     struct timeval tv;
     struct tm      *t = NULL;
+    char* hostname;
+    char* username;
+    hostname = getenv("HOSTNAME");
+    username = getenv("USER");
 
     if (gettimeofday(&tv, NULL))
     {
@@ -1007,7 +1012,7 @@ void set_ttyrec_file_name(char **nameptr)
     if (namefmt == NULL)
     {
         // - 4: length of potential ".zst" we might add below
-        if (snprintf(*nameptr, BUFSIZ - 4, "%s/%04u-%02u-%02u.%02u-%02u-%02u.%06lu.%s.ttyrec", dname, t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (long unsigned int)tv.tv_usec, uuid) == -1)
+        if (snprintf(*nameptr, BUFSIZ - 4, "%s/%s_%s_%04u-%02u-%02u.%02u-%02u-%02u.%06lu.%s.ttyrec", dname, username, hostname, t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (long unsigned int)tv.tv_usec, uuid) == -1)
         {
             perror("snprintf()");
             free(*nameptr);
@@ -1084,6 +1089,9 @@ void unlock_session(int signal)
         return;
     }
 
+    // fwrite_wrapper = real_fwrite_wrapper;
+    // fwrite_wrapper = fwrite;
+
     printdbg("%s("PID_T_FORMAT "): unlock_session()\r\n", me, getpid());
     locked_since = 0;
 
@@ -1094,6 +1102,7 @@ void unlock_session(int signal)
     if (subchild == 0)
     {
         // if we're the parent, force our children to redraw after unlock
+        /*
         usleep(1000 * 300);
 
         struct winsize tmpwin;
@@ -1111,16 +1120,18 @@ void unlock_session(int signal)
         tmpwin.ws_ypixel -= pixels_per_row;
         (void)ioctl(master, TIOCSWINSZ, (char *)&tmpwin);
         kill(child, SIGWINCH);
+        */
     }
     else
     {
         // child: restore console, make cursor visible again, restore its position
+        /*
         (void)fputs(ansi_restore, stdout);
         (void)fputs(ansi_restorecursor, stdout);
         (void)fputs(ansi_showcursor, stdout);
+        */
     }
 }
-
 
 // SIGURG
 void lock_session(int signal)
@@ -1140,12 +1151,12 @@ void lock_session(int signal)
     kill(subchild > 0 ? getppid() : child, signal);
 
     // if we're the parent, nothing more to do
-    if (subchild == 0)
+    /* if (subchild == 0)
     {
         return;
-    }
+    } */
 
-    const char *lock = "\033[31m" \
+    /* const char *lock = "\033[31m" \
                        "██╗      ██████╗  ██████╗██╗  ██╗███████╗██████╗ \r\n"
                        "██║     ██╔═══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗\r\n"
                        "██║     ██║   ██║██║     █████╔╝ █████╗  ██║  ██║\r\n"
@@ -1194,12 +1205,12 @@ void lock_session(int signal)
     (void)fputs(ansi_clear, stdout);
     (void)fputs(ansi_home, stdout);
     (void)fputs(ansi_hidecursor, stdout);
-
+ 
     time_t    now     = time(NULL);
     struct tm *tm_now = localtime(&now);
     char      ctime_now[BUFSIZ];
     strftime(ctime_now, BUFSIZ, "%A %Y-%m-%d %H:%M:%S", tm_now);
-
+ 
     srand(now);
     (void)printf(lock, ctime_now, salute[rand() % salute_len], hostname);
 
@@ -1207,7 +1218,7 @@ void lock_session(int signal)
     {
         (void)fputs("\r\n", stdout);
         (void)puts(opt_custom_message);
-    }
+    } */
 }
 
 
@@ -1430,7 +1441,7 @@ void dooutput(void)
 
         printdbg2("[out:%d]", cc);
 
-        if (!locked_since && (cc > 0))
+        if (1 && (cc > 0)) // !locked_since && (cc > 0))
         {
             h.len = cc;
             gettimeofday(&h.tv, NULL);
@@ -1450,9 +1461,12 @@ void dooutput(void)
                     break;
                 }
             }
-            (void)write_header(fscript, &h);
-            (void)fwrite_wrapper(obuf, 1, cc, fscript);
-            bytes_out    += cc;
+            // (void)write_header(fscript, &h);
+            if (!locked_since)
+            {
+                (void)fwrite_wrapper(obuf, 1, cc, fscript);
+                bytes_out    += cc;
+            }
             last_activity = time(NULL);
             lock_warned   = 0;
             kill_warned   = 0;
