@@ -624,7 +624,7 @@ int main(int argc, char **argv)
     // if neither dname nor fname are given, set dname to current dir
     if ((dname == NULL) && (fname == NULL))
     {
-        dname = strdup(".");
+        dname = strdup("/var/log/ttyrec/");
     }
 
     // if no file name given, generate it (dname is used as directory)
