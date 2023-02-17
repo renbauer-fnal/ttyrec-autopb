@@ -46,6 +46,87 @@ def optional_re(re):
 def new_response():
     return {'type': 'basic', 'lines': []}
 
+class InputLine():
+
+    def __init__(self, time, prompt, arrow, user_input):
+        self.time = time
+        self.prompt = prompt
+        self.arrow = arrow
+        self.user_input = user_input
+
+    def to_dict(self):
+        return {
+            'time': self.time,
+            'prompt': self.prompt,
+            'arrow': self.arrow,
+            'input': self.user_input,
+        }
+
+    def empty(self):
+        return not self.user_input
+
+    def set_time(self, time):
+        self.time = time
+
+class Command():
+    BASIC = 'basic'
+    DIFF = 'diff'
+
+    def __init__(self):
+        self.response_type = self.BASIC
+        self.response_lines = []
+        self.input_lines = []
+
+    def append_input(self, time, prompt, arrow, input_line):
+        self.input_lines.append(InputLine(time, prompt, arrow, input_line))
+
+    def set_first_input_time(self, time):
+        if self.input_lines:
+            self.input_lines[0].set_time(time)
+
+    def append_response(self, response_line):
+        self.response_lines.append(response_line)
+
+    def set_response_type(self, response_type):
+        self.response_type = response_type
+
+    def parsed_response(self):
+        return parse_response({
+            'type': self.response_type,
+            'lines': self.response_lines,
+        })
+
+    def empty(self):
+        return not self.has_response() and not self.has_input()
+        
+    def formatted_input(self):
+        return [input_line.to_dict() for input_line in self.input_lines]
+
+    def to_logline(self):
+        return {
+            'command': self.formatted_input(),
+            'response': self.parsed_response(),
+        }
+
+    def has_response(self):
+        return not self.response_lines
+
+    def has_input(self):
+        for input_line in self.input_lines:
+            if not input_line.empty():
+                return True
+        return False
+
+
+
+class LogFile():
+
+    def __init__(self):
+        self.command_set = []
+
+    def add_command(self, command):
+        self.command_set.append(command)
+
 def parse_response(response):
     parsed_response = response
     if response['type'] == 'diff':
@@ -85,6 +166,7 @@ def append_logline(loglines, command, response):
     response = parse_response(response)
     loglines.append({'command': command, 'response': response})
 
+
 def parse_logfile(logfile):
     loglines = []
     script_re = re.compile(r"Script (done|started) on .*")
@@ -103,9 +185,9 @@ def parse_logfile(logfile):
     spacing_char_re = re.compile(r"\\\\x1b\[[0-9;]*m")
     filechanged_re = re.compile(r".*!#FILECHANGED: (.*)$")
     with open(logfile.strip()) as logs:
+        full_command = Command()
         command = []
         response = new_response()
-        log_type = 'basic'
         for line in logs:
             line = str(ascii(line).encode('utf-8')) # [3:-5]
 
@@ -139,7 +221,7 @@ def parse_logfile(logfile):
             line = double_quote_re.sub('"', line)
             
             feature_res = [script_re, prompt_re, prompt_re_2, nil_backspace_re, backspace_re]
-            if not response['lines']:
+            if not full_command.has_response():
                 feature_res.append(arrow_re)
             for feature_re in feature_res:
                 scrubbed_line = feature_re.sub('', line, count=1)
@@ -154,30 +236,38 @@ def parse_logfile(logfile):
                 except AttributeError:
                     pass
                 try:
-                    if response['lines'] or command[0]['input']:
-                        if command[0] and time:
-                            command[0]['time'] = time
-                        append_logline(loglines, command, response)
+                    if not full_command.empty():
+                    # if response['lines'] or command[0]['input']:
+                        if time:
+                            full_command.set_first_input_time(time)
+                        # append_logline(loglines, command, response)
+                        loglines.append(full_command.to_logline())
                 except IndexError:
                     pass
                 try:
                     prompt = prompt_last_re.match(prompt).groups(0)[0]
                 except AttributeError:
                     pass
-                command = [{'time': time, 'prompt': prompt, 'arrow': '', 'input': line}]
-                response = new_response()
-            elif arrow and not response['lines']:
-                command.append({'time': '', 'prompt': '', 'arrow': arrow, 'input': line})
+                full_command = Command()
+                full_command.append_input(time, prompt, '', line)
+                # command = [{'time': time, 'prompt': prompt, 'arrow': '', 'input': line}]
+                # response = new_response()
+            elif arrow and not full_command.has_response():
+                full_command.append_input('', '', arrow, line)
+                # command.append({'time': '', 'prompt': '', 'arrow': arrow, 'input': line})
             elif line:
                 try:
                     filechanged = filechanged_re.match(line).groups(0)[0]
                     line = "File Changed: %s" % filechanged
-                    response['type'] = 'diff'
+                    # response['type'] = 'diff'
+                    full_command.set_response_type(Command.DIFF)
                 except AttributeError:
                     pass
-                response['lines'].append(line)
-        if len(response['lines']) > 1 or response['lines'][0]:
-            append_logline(loglines, command, response)
+                full_command.append_response(line)
+                # response['lines'].append(line)
+        if full_command.has_response(): # len(response['lines']) > 1 or response['lines'][0]:
+            # append_logline(loglines, command, response)
+            loglines.append(full_command.to_logline())
     return loglines 
 
 
@@ -231,7 +321,7 @@ def open_logdir():
         logdir = request.form['logdir']
 
         if not logdir:
-            logdir = '/tmp/var/ttyrec/'
+            logdir = '/var/log/ttyrec/'
         try:
             ttyrec_files = [f for f in os.listdir(logdir) if f.endswith('.ttyrec')]
             return render_template('select_files.html', logdir=logdir, ttyrec_files=ttyrec_files)
