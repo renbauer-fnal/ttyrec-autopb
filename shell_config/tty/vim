@@ -13,10 +13,9 @@ vim $@
 
 for file in $@; do
     kill -12 $ttyrec_proc
+    sleep .1 # let ttyrec wake up
     echo "!#FILECHANGED: $file"
     diff -c /tmp/$file $file
-    # sleep .1
-    # kill -23 $ttyrec_proc
     rm /tmp/$file
     dir=$(dirname $file)
     while [ "$dir" != "." ]; do
@@ -28,7 +27,3 @@ for file in $@; do
         fi
     done
 done
-
-# clear
-
-# kill -12 $ttyrec_proc
