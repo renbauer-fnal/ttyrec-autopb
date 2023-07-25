@@ -351,8 +351,14 @@ def wiki_format(proclines):
             output.append("=== Diagnose on %s ===" % procline['hostname'])
         for commandline in procline['command']:
             output.append(" '''" + commandline["prompt"] + commandline["arrow"] + "'''" + commandline["input"])
-        for responseline in procline['response']:
-            output.append(" " + responseline)
+        if procline['response']['type'] == 'basic':
+            for responseline in procline['response']['lines']:
+               output.append(" " + responseline)
+        elif procline['response']['type'] == 'diff':
+            for headerline in procline['response']['header']:
+                output.append(" " + headerline)
+            for line_no, diffline in procline['response']['diff'].items():
+                output.append(" " + str(line_no) + ":" + diffline['left'] + "|" + diffline['right'])
         output.append(procline['comment'])
     return "\n".join(output)
 
